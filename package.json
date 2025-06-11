@@ -1,0 +1,24 @@
+{
+  "name": "hostbot",
+  "version": "1.0.0",
+  "description": "host service for diablo 2 resurrected terror zones",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chantast1c/hostbot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chantast1c/hostbot/issues"
+  },
+  "homepage": "https://github.com/chantast1c/hostbot#readme",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.5.0"
+  }
+}
