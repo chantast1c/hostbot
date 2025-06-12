@@ -1,4 +1,4 @@
-import { BaseInteraction, Client, EmbedBuilder } from "discord.js";
+import { ActionRowBuilder, Client, ButtonBuilder, ButtonStyle } from "discord.js";
 import { config } from "dotenv";
 
 config();
@@ -11,28 +11,79 @@ client.on("ready", () => {
     console.log("The bot is logged in.");
 });
 
+//initialize run 0
+let runid = 0
+let runs = {};
+
 client.on("interactionCreate", async (interaction) => {
     if (interaction.isCommand()) {
         if (interaction.commandName === "host") {
             let zone = interaction.options.getString("zone")
+            let run = {
+                host: interaction.user.id,
+                runners: [interaction.user.id],
+            }
             switch (zone) {
                 case "tombs":
                     try {
-                        await interaction.reply('<@' + interaction.user.id + ">" + " is hosting Tombs!")
+                        const join = new ButtonBuilder()
+                            .setCustomId(`join` + `${runid}`)
+                            .setLabel('Join')
+                            .setStyle(ButtonStyle.Success);
+                        const leave = new ButtonBuilder()
+                            .setCustomID(`leave` + `${runid}`)
+                            .setLabel("Leave")
+                            .setStyle(ButtonStyle.Danger);
+                        const row = new ActionRowBuilder()
+                            .addComponents(join, leave);
+                        await interaction.reply({
+                            content: '<@' + interaction.user.id + ">" + " is hosting Tombs! " + `[${run.runners.length}/8]`,
+                            components: [row],
+                        })
+                        runid++
                     }
                     catch (e) {
                         console.log(e)
                     }
                 case "chaos":
                     try {
-                        await interaction.reply('<@' + interaction.user.id + ">" + " is hosting Chaos!")
+                        const join = new ButtonBuilder()
+                            .setCustomId(`join` + `${runid}`)
+                            .setLabel('Join')
+                            .setStyle(ButtonStyle.Success);
+                        const leave = new ButtonBuilder()
+                            .setCustomID(`leave` + `${runid}`)
+                            .setLabel("Leave")
+                            .setStyle(ButtonStyle.Danger);
+                        const row = new ActionRowBuilder()
+                            .addComponents(join, leave);
+                        await interaction.reply({
+                            content: '<@' + interaction.user.id + ">" + " is hosting Chaos! " + `[${run.runners.length}/8]`,
+                            components: [row],
+                        })
+                        runid++
                     }
                     catch (e) {
                         console.log(e)
                     }
                 case "baal":
                     try {
-                        await interaction.reply('<@' + interaction.user.id + ">" + " is hosting Pre-Tele Baal!")
+                        const join = new ButtonBuilder()
+                            .setCustomId(`join` + `${runid}`)
+                            .setLabel('Join')
+                            .setStyle(ButtonStyle.Success);
+                        const leave = new ButtonBuilder()
+                            .setCustomId(`leave` + `${runid}`)
+                            .setLabel("Leave")
+                            .setStyle(ButtonStyle.Danger);
+                        const row = new ActionRowBuilder()
+                            .addComponents(join, leave)
+                        await interaction.reply({
+                            content: '<@' + interaction.user.id + ">" + " is hosting Pre-Tele Baal! " + `[${run.runners.length}/8]`,
+                            components: [row],
+                        }
+                        )
+                        runid++
                     }
                     catch (e) {
                         console.log(e)

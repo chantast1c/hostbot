@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/chantast1c/hostbot#readme",
   "dependencies": {
+    "discord-components": "^1.0.26",
     "discord.js": "^14.14.1",
     "dotenv": "^16.5.0"
   }
