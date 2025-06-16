@@ -1,4 +1,4 @@
-import { ActionRowBuilder, Client, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js";
+import { ActionRowBuilder, Client, ButtonBuilder, ButtonStyle, MessageFlags, GuildDefaultMessageNotifications, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { config } from "dotenv";
 
 config();
@@ -13,106 +13,69 @@ client.on("ready", () => {
 
 //initialize run 0
 let runid = 0
-let messagemap = new Map()
+let runmap = new Map()
+const max = 8
+const twoHours = 2 * 60 * 60 * 1000
 
 client.on("interactionCreate", async (interaction) => {
     if (interaction.isCommand()) {
         if (interaction.commandName === "host") {
+            //Reset previous runs if older than 2 hours
+            if (runmap.size >= 1) {
+                const current = new Date()
+                for (const [id, run] of runmap.entries()) {
+                    if (current - run.time > twoHours) runmap.delete(id);
+                }
+            }
             const timestamp = Date.now()
             let zone = interaction.options.getString("zone")
             let run = {
                 time: timestamp,
                 id: runid,
-                host: interaction.user.id,
+                host: interaction.user.displayName,
                 runners: [interaction.user.id],
             }
-            switch (zone) {
-                case "tombs":
-                    try {
-                        const join = new ButtonBuilder()
-                            .setCustomId(`join_` + `${runid}`)
-                            .setLabel('Join')
-                            .setStyle(ButtonStyle.Success);
-                        const leave = new ButtonBuilder()
-                            .setCustomId(`leave_` + `${runid}`)
-                            .setLabel("Leave")
-                            .setStyle(ButtonStyle.Danger);
-                        const row = new ActionRowBuilder()
-                            .addComponents(join, leave);
-                        const response = await interaction.reply({
-                            content: '<@' + interaction.user.id + ">" + " is hosting Tombs! " + `[${run.runners.length}/8]`,
-                            components: [row],
-                            withResponse: true
-                        })
-                        run.message = response;
-                        messagemap.set(runid, run)
-                        runid++
-                        break
-                    }
-                    catch (e) {
-                        console.log(e)
-                    }
-                case "chaos":
-                    try {
-                        const join = new ButtonBuilder()
-                            .setCustomId(`join_` + `${runid}`)
-                            .setLabel('Join')
-                            .setStyle(ButtonStyle.Success);
-                        const leave = new ButtonBuilder()
-                            .setCustomId(`leave_` + `${runid}`)
-                            .setLabel("Leave")
-                            .setStyle(ButtonStyle.Danger);
-                        const row = new ActionRowBuilder()
-                            .addComponents(join, leave);
-                        const response = await interaction.reply({
-                            content: '<@' + interaction.user.id + ">" + " is hosting Chaos! " + `[${run.runners.length}/8]`,
-                            components: [row],
-                            withResponse: true
-                        })
-                        run.message = response;
-                        messagemap.set(runid, run)
-                        runid++
-                        break
-                    }
-                    catch (e) {
-                        console.log(e)
-                    }
-                case "baal":
-                    try {
-                        const join = new ButtonBuilder()
-                            .setCustomId(`join_` + `${runid}`)
-                            .setLabel('Join')
-                            .setStyle(ButtonStyle.Success);
-                        const leave = new ButtonBuilder()
-                            .setCustomId(`leave_` + `${runid}`)
-                            .setLabel("Leave")
-                            .setStyle(ButtonStyle.Danger);
-                        const row = new ActionRowBuilder()
-                            .addComponents(join, leave)
-                        const response = await interaction.reply({
-                            content: '<@' + interaction.user.id + ">" + " is hosting Pre-Tele Baal! " + `[${run.runners.length}/8]`,
-                            components: [row],
-                            withResponse: true
-                        }
-                        )
-                        run.message = response
-                        messagemap.set(runid, run)
-                        runid++
-                        break
-                    }
-                    catch (e) {
-                        console.log(e)
-                    }
+            const modal = new ModalBuilder()
+                .setCustomId(`modal_${runid}_${zone}`)
+                .setTitle("Game Info")
+            const game = new TextInputBuilder()
+                .setCustomId(`gameinfo_${runid}`)
+                .setLabel("Game Name")
+                .setStyle(TextInputStyle.Short)
+            const pw = new TextInputBuilder()
+                .setCustomId(`password_${runid}`)
+                .setLabel("Password")
+                .setStyle(TextInputStyle.Short)
+            const firstrow = new ActionRowBuilder().addComponents(game)
+            const secondrow = new ActionRowBuilder().addComponents(pw)
+            modal.addComponents(firstrow, secondrow)
+            runmap.set(runid, run)
+            await interaction.showModal(modal)
+        }
+
+        if (interaction.commandName == "runs") {
+            if (runmap.size === 0) {
+                interaction.reply({ content: `No active runs.`, flags: MessageFlags.Ephemeral })
+                return
             }
+            for (let [id, run] of runmap.entries()) {
+                if (run.runners.includes(interaction.user.id)) {
+                    //TODO: add line breaks and @symbols when called
+                    const mentions = run.runners.map(id => `<@${id}>`).join('\n')
+                    interaction.reply({ content: `Terror Zone: ${run.zone}\nGame info: ${run.game} / ${run.pw}\nPlayers:\n${mentions}`, flags: MessageFlags.Ephemeral })
+                    return
+                }
+            }
+            interaction.reply({ content: "You are not in any active runs.", flags: MessageFlags.Ephemeral })
         }
     }
+
     // Button handler
     if (interaction.isButton()) {
         const [action, idStr] = interaction.customId.split("_");
         const id = parseInt(idStr);
-        const message = messagemap.get(id);
-
-        if (!message) {
+        let run = runmap.get(id)
+        if (!runmap.get(id)) {
             await interaction.reply({ content: "Could not find run info.", flags: MessageFlags.Ephemeral });
             return;
         }
@@ -120,10 +83,14 @@ client.on("interactionCreate", async (interaction) => {
         // Handle join and leave separately
         if (action === "join") {
             // Logic to add the user to the run
-            if (!messagemap.get(id).runners.includes(interaction.user.id)) {
-                messagemap.get(id).runners.push(interaction.user.id)
-                await interaction.reply({ content: `You joined run ${id}`, flags: MessageFlags.Ephemeral });
-                await messagemap.get(id).message.resource.content
+            if (!run.runners.includes(interaction.user.id)) {
+                if (run.runners.length == max) {
+                    await interaction.reply({ content: "Run is full.", flags: MessageFlags.Ephemeral })
+                    return
+                }
+                run.runners.push(interaction.user.id)
+                await interaction.reply(`${interaction.user.displayName} has joined the run! [${run.runners.length}/8]`)
+                await interaction.followUp({ content: `You joined ${run.host}'s ${run.zone} run! \n Game info: ${run.game} \n Password: ${run.pw}`, flags: MessageFlags.Ephemeral });
             }
             else {
                 await interaction.reply({ content: "You are already in the run.", flags: MessageFlags.Ephemeral })
@@ -131,16 +98,53 @@ client.on("interactionCreate", async (interaction) => {
             // Optionally: update the message with new runner count
         } else if (action === "leave") {
             // Logic to remove the user from the run
-            if (messagemap.get(id).runners.includes(interaction.user.id)) {
-                let run = messagemap.get(id);
-                run.runners = messagemap.get(id).runners.filter(item => item !== interaction.user.id)
-                messagemap.set(id, run)
-                await interaction.reply({ content: `You left run ${id}`, flags: MessageFlags.Ephemeral });
+            if (runmap.get(id).runners.includes(interaction.user.id)) {
+                run.runners = runmap.get(id).runners.filter(item => item !== interaction.user.id)
+                runmap.set(id, run)
+                await interaction.reply({ content: `You left run ${runmap.get(id).host}'s ${runmap.get(id).zone} runs.`, flags: MessageFlags.Ephemeral });
+                await interaction.followUp(`${interaction.user.displayName} has left the run! [${runmap.get(id).runners.length}/8]`)
             }
             else {
                 await interaction.reply({ content: "You are not in the run.", flags: MessageFlags.Ephemeral })
             }
-            // Optionally: update the message
+        }
+    }
+
+    if (interaction.isModalSubmit()) {
+        const [_, idStr, zone] = interaction.customId.split("_");
+        const id = parseInt(idStr);
+        let run = runmap.get(id)
+        let zoneName = {
+            tombs: "Tombs",
+            chaos: "Chaos",
+            baal: "Pre-Tele Baal"
+        }[zone] || "Unknown Zone";
+        run.game = interaction.fields.getTextInputValue(`gameinfo_${id}`)
+        run.pw = interaction.fields.getTextInputValue(`password_${id}`)
+        try {
+            const join = new ButtonBuilder()
+                .setCustomId(`join_${id}`)
+                .setLabel('Join')
+                .setStyle(ButtonStyle.Success);
+            const leave = new ButtonBuilder()
+                .setCustomId(`leave_${id}`)
+                .setLabel("Leave")
+                .setStyle(ButtonStyle.Danger);
+            const row = new ActionRowBuilder()
+                .addComponents(join, leave);
+            const response = await interaction.reply({
+                content: `<@${interaction.user.id}> is hosting ${zoneName}! [${run.runners.length}/8]`,
+                components: [row],
+                withResponse: true
+            })
+            run.message = response;
+            run.zone = zone
+            runmap.set(id, run)
+            await interaction.followUp({ content: `Thank you for hosting ${zoneName}! \nGame name: ${run.game} \nPassword: ${run.pw}`, flags: MessageFlags.Ephemeral })
+            runid++
+        }
+        catch (e) {
+            console.log(e)
         }
     }
 }

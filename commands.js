@@ -23,16 +23,10 @@ const slashRegister = async () => {
                                 { name: "Tombs", value: "tombs" },
                                 { name: "Chaos", value: "chaos" },
                                 { name: "Baal", value: "baal" }
-                            ))
-                    .addStringOption((option) =>
-                        option.setName("game")
-                            .setDescription("Game Name")
-                            .setRequired(true)
-                    )
-                    .addStringOption((option) =>
-                        option.setName("pw")
-                            .setDescription("Password")
-                            .setRequired(true))
+                            )),
+                new SlashCommandBuilder()
+                    .setName("runs")
+                    .setDescription("Find game info"),
             ]
         })
     }
