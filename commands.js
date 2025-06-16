@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config()
 
 const botID = "1382184202228859002";
-const serverID = "752730590658428938";
+const serverID = "981373680787537943";
 const TOKEN = process.env.DISCORD_TOKEN;
 
 const rest = new REST().setToken(TOKEN);
