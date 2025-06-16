@@ -1,4 +1,4 @@
-import { ActionRowBuilder, Client, ButtonBuilder, ButtonStyle, MessageFlags, GuildDefaultMessageNotifications, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
+import { ActionRowBuilder, Client, ButtonBuilder, ButtonStyle, MessageFlags, GuildDefaultMessageNotifications, ModalBuilder, TextInputBuilder, TextInputStyle, Message } from "discord.js";
 import { config } from "dotenv";
 
 config();
@@ -32,7 +32,7 @@ client.on("interactionCreate", async (interaction) => {
             let run = {
                 time: timestamp,
                 id: runid,
-                host: interaction.user.displayName,
+                host: interaction.user.id,
                 runners: [interaction.user.id],
             }
             const modal = new ModalBuilder()
@@ -58,17 +58,78 @@ client.on("interactionCreate", async (interaction) => {
                 interaction.reply({ content: `No active runs.`, flags: MessageFlags.Ephemeral })
                 return
             }
-            for (let [id, run] of runmap.entries()) {
+            let output = "";
+            for (let [_, run] of runmap) {
                 if (run.runners.includes(interaction.user.id)) {
                     //TODO: add line breaks and @symbols when called
+                    const host = `<@${run.host}>`
+                    const tz = run.zone
+                    const gameName = run.game
+                    const pw = run.pw
                     const mentions = run.runners.map(id => `<@${id}>`).join('\n')
-                    interaction.reply({ content: `Terror Zone: ${run.zone}\nGame info: ${run.game} / ${run.pw}\nPlayers:\n${mentions}`, flags: MessageFlags.Ephemeral })
-                    return
+                    output += `Host: ${host}\nTZ: ${tz}\nGame name: ${gameName} \nPassword: ${pw} \nPlayers: \n${mentions}\n\n`
                 }
             }
-            interaction.reply({ content: "You are not in any active runs.", flags: MessageFlags.Ephemeral })
+            if (output.length > 0) {
+                await interaction.reply({
+                    content: output, flags: MessageFlags.Ephemeral
+                })
+                return
+            }
+            else {
+                interaction.reply({ content: "You are not in any active runs.", flags: MessageFlags.Ephemeral })
+            }
         }
     }
+
+    if (interaction.commandName == "end") {
+        let isHosting = false;
+        for (const [_, run] of runmap) {
+            if (run.host == interaction.user.id) {
+                isHosting = true;
+            }
+        }
+        if (!isHosting) {
+            await interaction.reply("You are not hosting any runs.");
+            return
+        }
+        switch (interaction.options.getString("zone")) {
+            case ("all"):
+                for (const [_, run] of runmap) {
+                    if (run.host == interaction.user.id) {
+                        runmap.delete(run.id)
+                    }
+                }
+                await interaction.reply({ content: "Ended all runs.", flags: MessageFlags.Ephemeral })
+                return
+            case ("tombs"):
+                for (const [_, run] of runmap) {
+                    if (run.host == interaction.user.id && run.zone == "tombs") {
+                        runmap.delete(run.id)
+                    }
+                }
+                await interaction.reply({ content: "Ended run.", flags: MessageFlags.Ephemeral })
+                return
+            case ("chaos"):
+                for (const [_, run] of runmap) {
+                    if (run.host == interaction.user.id && run.zone == "chaos") {
+                        runmap.delete(run.id)
+                    }
+                }
+                await interaction.reply({ content: "Ended run.", flags: MessageFlags.Ephemeral })
+                return
+            case ("baal"):
+                for (const [_, run] of runmap) {
+                    if (run.host == interaction.user.id && run.zone == "baal") {
+                        runmap.delete(run.id)
+                    }
+                }
+                await interaction.reply({ content: "Ended run.", flags: MessageFlags.Ephemeral })
+                return
+        }
+    }
+
+
 
     // Button handler
     if (interaction.isButton()) {
@@ -89,8 +150,8 @@ client.on("interactionCreate", async (interaction) => {
                     return
                 }
                 run.runners.push(interaction.user.id)
-                await interaction.reply(`${interaction.user.displayName} has joined the run! [${run.runners.length}/8]`)
-                await interaction.followUp({ content: `You joined ${run.host}'s ${run.zone} run! \n Game info: ${run.game} \n Password: ${run.pw}`, flags: MessageFlags.Ephemeral });
+                await interaction.reply(`<@${interaction.user.id}> has joined the run![${run.runners.length}/8]`)
+                await interaction.followUp({ content: `You joined <@${run.host}> 's ${run.zone} run! \n Game info: ${run.game} \n Password: ${run.pw}`, flags: MessageFlags.Ephemeral });
             }
             else {
                 await interaction.reply({ content: "You are already in the run.", flags: MessageFlags.Ephemeral })
@@ -101,8 +162,8 @@ client.on("interactionCreate", async (interaction) => {
             if (runmap.get(id).runners.includes(interaction.user.id)) {
                 run.runners = runmap.get(id).runners.filter(item => item !== interaction.user.id)
                 runmap.set(id, run)
-                await interaction.reply({ content: `You left run ${runmap.get(id).host}'s ${runmap.get(id).zone} runs.`, flags: MessageFlags.Ephemeral });
-                await interaction.followUp(`${interaction.user.displayName} has left the run! [${runmap.get(id).runners.length}/8]`)
+                await interaction.reply({ content: `You left <@${runmap.get(id).host}>'s ${runmap.get(id).zone} runs.`, flags: MessageFlags.Ephemeral });
+                await interaction.followUp(`<@${interaction.user.id}> has left the run! [${runmap.get(id).runners.length}/8]`)
             }
             else {
                 await interaction.reply({ content: "You are not in the run.", flags: MessageFlags.Ephemeral })

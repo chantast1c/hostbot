@@ -27,6 +27,19 @@ const slashRegister = async () => {
                 new SlashCommandBuilder()
                     .setName("runs")
                     .setDescription("Find game info"),
+                new SlashCommandBuilder()
+                    .setName("end")
+                    .setDescription("End run")
+                    .addStringOption((option) =>
+                        option.setName("zone")
+                            .setDescription("which zone?")
+                            .setRequired(true)
+                            .addChoices(
+                                { name: "All", value: "all" },
+                                { name: "Tombs", value: "tombs" },
+                                { name: "Chaos", value: "chaos" },
+                                { name: "Baal", value: "baal" }
+                            ))
             ]
         })
     }
