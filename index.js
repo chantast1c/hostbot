@@ -13,7 +13,7 @@ client.on("ready", () => {
 
 let runid = 0 //Initialize runid
 let runmap = new Map() //Stores a map of all active runs
-const max = 8 //Max players per game
+const MAX_PLAYER_COUNT = 8 //Max players per game
 const MAX_RUN_LENGTH = 2 * 60 * 60 * 1000 //Max active run duration
 
 client.on("interactionCreate", async (interaction) => {
@@ -53,6 +53,7 @@ client.on("interactionCreate", async (interaction) => {
             await interaction.showModal(modal)
         }
 
+
         if (interaction.commandName == "runs") {
             if (runmap.size === 0) {
                 interaction.reply({ content: `No active runs.`, flags: MessageFlags.Ephemeral })
@@ -81,52 +82,42 @@ client.on("interactionCreate", async (interaction) => {
                 interaction.reply({ content: "You are not in any active runs.", flags: MessageFlags.Ephemeral })
             }
         }
-    }
 
-    if (interaction.commandName == "end") {
-        let isHosting = false;
-        for (const [_, run] of runmap) {
-            if (run.host == interaction.user.id) {
-                isHosting = true;
+        if (interaction.commandName == "end") {
+            let isHosting = false;
+            for (const [_, run] of runmap) {
+                if (run.host == interaction.user.id) {
+                    isHosting = true;
+                }
             }
-        }
-        if (!isHosting) {
-            await interaction.reply({ content: "You are not hosting any runs.", flags: MessageFlags.Ephemeral });
-            return
-        }
-        switch (interaction.options.getString("zone")) {
-            case ("all"):
-                for (const [_, run] of runmap) {
-                    if (run.host == interaction.user.id) {
-                        runmap.delete(run.id)
-                    }
-                }
-                await interaction.reply({ content: "Ended all runs.", flags: MessageFlags.Ephemeral })
+            if (!isHosting) {
+                await interaction.reply({ content: "You are not hosting any runs.", flags: MessageFlags.Ephemeral });
                 return
-            case ("tombs"):
-                for (const [_, run] of runmap) {
-                    if (run.host == interaction.user.id && run.zone == "tombs") {
-                        runmap.delete(run.id)
+            }
+            const zone = interaction.options.getString("zone");
+            let ended = false;
+            switch (zone) {
+                case ("all"):
+                    for (const [id, run] of runmap) {
+                        if (run.host == interaction.user.id) {
+                            runmap.delete(id)
+                            ended = true;
+                        }
                     }
-                }
-                await interaction.reply({ content: "Ended run.", flags: MessageFlags.Ephemeral })
-                return
-            case ("chaos"):
-                for (const [_, run] of runmap) {
-                    if (run.host == interaction.user.id && run.zone == "chaos") {
-                        runmap.delete(run.id)
+                    await interaction.reply({ content: ended ? `Ended all runs.` : `You are not hosting any runs.`, flags: MessageFlags.Ephemeral })
+                    return
+                case ("tombs"):
+                case ("chaos"):
+                case ("baal"):
+                    for (const [id, run] of runmap) {
+                        if (run.host == interaction.user.id && run.zone == zone) {
+                            runmap.delete(id)
+                            ended = true;
+                        }
                     }
-                }
-                await interaction.reply({ content: "Ended run.", flags: MessageFlags.Ephemeral })
-                return
-            case ("baal"):
-                for (const [_, run] of runmap) {
-                    if (run.host == interaction.user.id && run.zone == "baal") {
-                        runmap.delete(run.id)
-                    }
-                }
-                await interaction.reply({ content: "Ended run.", flags: MessageFlags.Ephemeral })
-                return
+                    await interaction.reply({ content: ended ? `Ended ${zone}` : `You are not hosting a ${zone} run`, flags: MessageFlags.Ephemeral })
+                    return
+            }
         }
     }
 
@@ -144,7 +135,7 @@ client.on("interactionCreate", async (interaction) => {
         if (action === "join") {
             // Logic to add the user to the run
             if (!run.runners.includes(interaction.user.id)) {
-                if (run.runners.length == max) {
+                if (run.runners.length == MAX_PLAYER_COUNT) {
                     await interaction.reply({ content: "Run is full.", flags: MessageFlags.Ephemeral })
                     return
                 }
@@ -207,5 +198,4 @@ client.on("interactionCreate", async (interaction) => {
             console.log(e)
         }
     }
-}
-)
+})
