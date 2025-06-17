@@ -1,4 +1,4 @@
-import { ActionRowBuilder, Client, ButtonBuilder, ButtonStyle, MessageFlags, GuildDefaultMessageNotifications, ModalBuilder, TextInputBuilder, TextInputStyle, Message } from "discord.js";
+import { ActionRowBuilder, Client, ButtonBuilder, ButtonStyle, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle } from "discord.js";
 import { config } from "dotenv";
 
 config();
@@ -11,11 +11,10 @@ client.on("ready", () => {
     console.log("The bot is logged in.");
 });
 
-//initialize run 0
-let runid = 0
-let runmap = new Map()
-const max = 8
-const twoHours = 2 * 60 * 60 * 1000
+let runid = 0 //Initialize runid
+let runmap = new Map() //Stores a map of all active runs
+const max = 8 //Max players per game
+const MAX_RUN_LENGTH = 2 * 60 * 60 * 1000 //Max active run duration
 
 client.on("interactionCreate", async (interaction) => {
     if (interaction.isCommand()) {
@@ -24,7 +23,7 @@ client.on("interactionCreate", async (interaction) => {
             if (runmap.size >= 1) {
                 const current = new Date()
                 for (const [id, run] of runmap.entries()) {
-                    if (current - run.time > twoHours) runmap.delete(id);
+                    if (current - run.time > MAX_RUN_LENGTH) runmap.delete(id);
                 }
             }
             const timestamp = Date.now()
@@ -35,6 +34,7 @@ client.on("interactionCreate", async (interaction) => {
                 host: interaction.user.id,
                 runners: [interaction.user.id],
             }
+            //Send game info via modal
             const modal = new ModalBuilder()
                 .setCustomId(`modal_${runid}_${zone}`)
                 .setTitle("Game Info")
@@ -59,9 +59,10 @@ client.on("interactionCreate", async (interaction) => {
                 return
             }
             let output = "";
+            //Parse runmap for runs that user is participating in
+            //Pass output string to bot for reply
             for (let [_, run] of runmap) {
                 if (run.runners.includes(interaction.user.id)) {
-                    //TODO: add line breaks and @symbols when called
                     const host = `<@${run.host}>`
                     const tz = run.zone
                     const gameName = run.game
@@ -128,8 +129,6 @@ client.on("interactionCreate", async (interaction) => {
                 return
         }
     }
-
-
 
     // Button handler
     if (interaction.isButton()) {
