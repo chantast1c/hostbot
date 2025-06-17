@@ -90,7 +90,7 @@ client.on("interactionCreate", async (interaction) => {
             }
         }
         if (!isHosting) {
-            await interaction.reply("You are not hosting any runs.");
+            await interaction.reply({ content: "You are not hosting any runs.", flags: MessageFlags.Ephemeral });
             return
         }
         switch (interaction.options.getString("zone")) {
