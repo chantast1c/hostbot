@@ -104,7 +104,12 @@ client.on("interactionCreate", async (interaction) => {
                             ended = true;
                         }
                     }
-                    await interaction.reply({ content: ended ? `Ended all runs.` : `You are not hosting any runs.`, flags: MessageFlags.Ephemeral })
+                    if (ended) {
+                        await interaction.reply({ content: `<@${interaction.user.id}> has ended all runs.` })
+                    }
+                    else {
+                        await interaction.reply({ content: "You are not hosting any runs.", flags: MessageFlags.Ephemeral })
+                    }
                     return
                 case ("tombs"):
                 case ("chaos"):
@@ -115,7 +120,12 @@ client.on("interactionCreate", async (interaction) => {
                             ended = true;
                         }
                     }
-                    await interaction.reply({ content: ended ? `Ended ${zone}` : `You are not hosting a ${zone} run`, flags: MessageFlags.Ephemeral })
+                    if (ended) {
+                        await interaction.reply({ content: `<@${interaction.user.id} has ended ${zone} runs` })
+                    }
+                    else {
+                        await interaction.reply({ content: `You are not hosting ${zone} runs.`, flags: MessageFlags.Ephemeral })
+                    }
                     return
             }
         }
