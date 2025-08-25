@@ -25,16 +25,19 @@ let runmap = new Map(); //Stores a map of all active runs
 const MAX_PLAYER_COUNT = 8; //Max players per game
 const MAX_RUN_LENGTH = 2 * 60 * 60 * 1000; //Max active run duration
 
+//Reset previous runs if older than MAX_RUN_LENGTH (2 hours)
+setInterval(() => {
+  if (runmap.size >= 1) {
+    const current = Date.now();
+    for (const [id, run] of runmap.entries()) {
+      if (current - run.time > MAX_RUN_LENGTH) runmap.delete(id);
+    }
+  }
+}, 60*60*1000)
+
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isCommand()) {
     if (interaction.commandName === "host") {
-      //Reset previous runs if older than 2 hours
-      if (runmap.size >= 1) {
-        const current = new Date();
-        for (const [id, run] of runmap.entries()) {
-          if (current - run.time > MAX_RUN_LENGTH) runmap.delete(id);
-        }
-      }
       const timestamp = Date.now();
       let zone = interaction.options.getString("zone");
       let run = {
