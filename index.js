@@ -25,15 +25,26 @@ let runmap = new Map(); //Stores a map of all active runs
 const MAX_PLAYER_COUNT = 8; //Max players per game
 const MAX_RUN_LENGTH = 2 * 60 * 60 * 1000; //Max active run duration
 
-//Reset previous runs if older than MAX_RUN_LENGTH (2 hours)
-setInterval(() => {
+function msUntilNextHour() {
+  const ms = Date.now();
+  return 3600000 - (ms % 3600000);
+}
+
+function cleanup() {
   if (runmap.size >= 1) {
     const current = Date.now();
     for (const [id, run] of runmap.entries()) {
       if (current - run.time > MAX_RUN_LENGTH) runmap.delete(id);
     }
   }
-}, 60*60*1000)
+}
+
+//Reset previous runs if older than MAX_RUN_LENGTH (2 hours)
+//Initialize at top of next hour
+setTimeout(() => {
+  cleanup();
+  setInterval(cleanup, 3600000);
+}, msUntilNextHour());
 
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isCommand()) {
@@ -74,6 +85,7 @@ client.on("interactionCreate", async (interaction) => {
         return;
       }
       let output = "";
+      //TODO: Allow user to view runs that have space and reply with join/leave button
       //Parse runmap for runs that user is participating in
       //Pass output string to bot for reply
       for (let [_, run] of runmap) {
@@ -187,9 +199,10 @@ client.on("interactionCreate", async (interaction) => {
           return;
         }
         run.runners.push(interaction.user.id);
-        await interaction.reply(
-          `<@${interaction.user.id}> has joined the run! [${run.runners.length}/8]`
-        );
+        await interaction.reply({
+          content: `<@${interaction.user.id}> has joined the run! [${run.runners.length}/8]`,
+          components: [run.buttons],
+        });
         await interaction.followUp({
           content: `You joined <@${run.host}> 's ${run.zone} run! \n Game info: ${run.game} \n Password: ${run.pw}`,
           flags: MessageFlags.Ephemeral,
@@ -209,12 +222,17 @@ client.on("interactionCreate", async (interaction) => {
           .runners.filter((item) => item !== interaction.user.id);
         runmap.set(id, run);
         await interaction.reply({
-          content: `You left <@${runmap.get(id).host}>'s ${runmap.get(id).zone} runs.`,
+          content: `You left <@${runmap.get(id).host}>'s ${
+            runmap.get(id).zone
+          } runs.`,
           flags: MessageFlags.Ephemeral,
         });
-        await interaction.followUp(
-          `<@${interaction.user.id}> has left the run! [${runmap.get(id).runners.length}/8]`
-        );
+        await interaction.followUp({
+          content: `<@${interaction.user.id}> has left the run! [${
+            runmap.get(id).runners.length
+          }/8]`,
+          components: [run.buttons],
+        });
       } else {
         await interaction.reply({
           content: "You are not in the run.",
@@ -253,6 +271,7 @@ client.on("interactionCreate", async (interaction) => {
       });
       run.message = response;
       run.zone = zone;
+      run.buttons = row;
       runmap.set(id, run);
       await interaction.followUp({
         content: `Thank you for hosting ${zoneName}! \nGame name: ${run.game} \nPassword: ${run.pw}`,
