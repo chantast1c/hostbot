@@ -7,6 +7,7 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  Message,
 } from "discord.js";
 import { config } from "dotenv";
 
@@ -75,8 +76,45 @@ client.on("interactionCreate", async (interaction) => {
       runmap.set(runid, run);
       await interaction.showModal(modal);
     }
-
     if (interaction.commandName == "runs") {
+      if (runmap.size === 0) {
+        interaction.reply({
+          content: `No active runs.`,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      let messages = [];
+      let components = [];
+
+      for (let [_, run] of runmap) {
+        if (run.runners.length < MAX_PLAYER_COUNT) {
+          const host = `<@${run.host}>`;
+          const tz = run.zone || "Unknown";
+          const mentions = run.runners.map((id) => `<@${id}>`).join("\n");
+
+          messages.push(
+            `**Host:** ${host}\n**Zone:** ${tz}\n**Players:**\n${mentions}`
+          );
+          if (run.buttons) components.push(run.buttons);
+        }
+      }
+
+      if (messages.length === 0) {
+        await interaction.reply({
+          content: `All runs are full.  Use /game to find game info for runs you are a part of.`,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await interaction.reply({
+        content: messages.join("\n\n"),
+        components,
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    if (interaction.commandName == "game") {
       if (runmap.size === 0) {
         interaction.reply({
           content: `No active runs.`,
@@ -95,7 +133,7 @@ client.on("interactionCreate", async (interaction) => {
           const gameName = run.game;
           const pw = run.pw;
           const mentions = run.runners.map((id) => `<@${id}>`).join("\n");
-          output += `Host: ${host}\nTZ: ${tz}\nGame name: ${gameName} \nPassword: ${pw} \nPlayers: \n${mentions}\n\n`;
+          output += `**Host:** ${host}\nTZ: ${tz}\n**Game name:** ${gameName} \n**Password:** ${pw} \n**Players:** \n${mentions}\n\n`;
         }
       }
       if (output.length > 0) {
@@ -204,7 +242,7 @@ client.on("interactionCreate", async (interaction) => {
           components: [run.buttons],
         });
         await interaction.followUp({
-          content: `You joined <@${run.host}> 's ${run.zone} run! \n Game info: ${run.game} \n Password: ${run.pw}`,
+          content: `You joined <@${run.host}> 's ${run.zone} run! \n **Game info:** ${run.game} \n**Password:** ${run.pw}`,
           flags: MessageFlags.Ephemeral,
         });
       } else {
@@ -274,7 +312,7 @@ client.on("interactionCreate", async (interaction) => {
       run.buttons = row;
       runmap.set(id, run);
       await interaction.followUp({
-        content: `Thank you for hosting ${zoneName}! \nGame name: ${run.game} \nPassword: ${run.pw}`,
+        content: `Thank you for hosting ${zoneName}! \n**Game name:** ${run.game} \n**Password:** ${run.pw}`,
         flags: MessageFlags.Ephemeral,
       });
       runid++;
