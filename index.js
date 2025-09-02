@@ -21,6 +21,7 @@ client.on("ready", () => {
   console.log("The bot is logged in.");
 });
 
+const ROLE_ID = "1411460704992624701"; //TZ role in pvm disc
 let runid = 0; //Initialize runid
 let runmap = new Map(); //Stores a map of all active runs
 const MAX_PLAYER_COUNT = 8; //Max players per game
@@ -303,7 +304,9 @@ client.on("interactionCreate", async (interaction) => {
         .setStyle(ButtonStyle.Danger);
       const row = new ActionRowBuilder().addComponents(join, leave);
       const response = await interaction.reply({
-        content: `<@${interaction.user.id}> is hosting ${zoneName}! [${run.runners.length}/8]`,
+        content:
+          `<@${interaction.user.id}> is hosting ${zoneName}! [${run.runners.length}/8]\n` +
+          `<@&${ROLE_ID}>`,
         components: [row],
         withResponse: true,
       });
